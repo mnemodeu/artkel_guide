@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Админка аналитики · Artikel Guide</title>
+  <script src="./analytics-config.js"></script>
+  <style>
+    :root{--ink:#17304a;--teal:#0aa7a5;--paper:#fffdf8;--line:#dce3ea}
+    *{box-sizing:border-box}
+    body{margin:0;font:16px/1.5 system-ui,sans-serif;background:#edf2f6;color:var(--ink)}
+    .wrap{max-width:760px;margin:0 auto;padding:40px 20px 80px}
+    h1{font-size:1.8rem;margin:0 0 8px}
+    .muted{color:#66788a}
+    .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin:18px 0}
+    .card h2{margin:0 0 12px;font-size:1.15rem}
+    label{display:block;font-size:.85rem;font-weight:700;margin:0 0 6px}
+    input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font:inherit}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    button,.btn{
+      border:0;border-radius:999px;background:var(--teal);color:#fff;padding:11px 18px;
+      font:700 .95rem system-ui;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;
+    }
+    button.secondary{background:#e8eef3;color:var(--ink)}
+    code,pre{background:#f3f6f9;border-radius:8px;padding:2px 6px;font-size:.9rem}
+    pre{padding:14px;overflow:auto;white-space:pre-wrap}
+    .ok{color:#1f7a45;font-weight:700}
+    .warn{color:#a15c00;font-weight:700}
+    ul{margin:8px 0 0;padding-left:18px}
+    .gate{max-width:420px;margin:18vh auto;background:#fff;padding:28px;border-radius:16px;border:1px solid var(--line)}
+  </style>
+</head>
+<body>
+  <div id="gate" class="gate">
+    <h1>Админка</h1>
+    <p class="muted">Простой доступ к ссылкам и настройке GA. Пароль по умолчанию: <code>mnemo</code></p>
+    <label for="pw">Пароль</label>
+    <input id="pw" type="password" placeholder="mnemo" autocomplete="current-password">
+    <div class="row"><button type="button" id="enter">Войти</button></div>
+  </div>
+
+  <div id="app" class="wrap" hidden>
+    <h1>Аналитика гайда</h1>
+    <p class="muted">Отдельная «своя» админка для трафика не нужна — цифры смотри в Google Analytics. Здесь: Instagram-ссылка и настройка ID.</p>
+
+    <div class="card">
+      <h2>1. Measurement ID</h2>
+      <p class="muted">Создай свойство GA4 → скопируй ID вида <code>G-XXXXXXXXXX</code> → вставь ниже и сохрани в <code>analytics-config.js</code>.</p>
+      <label for="ga">GA4 Measurement ID</label>
+      <input id="ga" type="text" placeholder="G-XXXXXXXXXX">
+      <p id="gaStatus" class="muted" style="margin-top:10px"></p>
+      <div class="row">
+        <a class="btn" href="https://analytics.google.com/" target="_blank" rel="noopener">Открыть Google Analytics</a>
+        <a class="btn" href="https://analytics.google.com/analytics/web/#/a/streaming/" target="_blank" rel="noopener">Создать поток / взять ID</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. Индивидуальная ссылка для Instagram</h2>
+      <p class="muted">Эту ссылку ставь в bio / сторис / пост. По ней в GA видно источник <code>instagram</code>.</p>
+      <label>Короткая ссылка (рекомендуется)</label>
+      <pre id="igShort"></pre>
+      <label>Прямая UTM-ссылка</label>
+      <pre id="igFull"></pre>
+      <div class="row">
+        <button type="button" id="copyShort">Копировать короткую</button>
+        <button type="button" class="secondary" id="copyFull">Копировать UTM</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. Что смотреть в GA4</h2>
+      <ul>
+        <li><b>Отчёты → Привлечение → Трафик</b> — фильтр <code>utm_source = instagram</code></li>
+        <li><b>События</b>: <code>cta_offer</code>, <code>cta_sticky</code>, <code>cta_hero</code>, <code>scroll_depth</code>, <code>campaign_landing</code></li>
+        <li><b>В реальном времени</b> — проверка сразу после клика по Instagram-ссылке</li>
+      </ul>
+      <div class="row" style="margin-top:14px">
+        <a class="btn" href="./" target="_blank" rel="noopener">Открыть лендинг</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>4. Файл конфигурации</h2>
+      <p class="muted">После получения ID отредактируй файл на сервере / в репозитории:</p>
+      <pre id="configPreview"></pre>
+    </div>
+  </div>
+
+  <script>
+    var PASS = "mnemo";
+    var gate = document.getElementById("gate");
+    var app = document.getElementById("app");
+    if (sessionStorage.getItem("mnemo_admin_ok") === "1") {
+      gate.hidden = true;
+      app.hidden = false;
+    }
+    document.getElementById("enter").onclick = function () {
+      if (document.getElementById("pw").value === PASS) {
+        sessionStorage.setItem("mnemo_admin_ok", "1");
+        gate.hidden = true;
+        app.hidden = false;
+      } else {
+        alert("Неверный пароль");
+      }
+    };
+
+    var base = (window.MNEMO_SITE_URL || "https://mnemodeu.github.io/artkel_guide").replace(/\/$/, "");
+    var shortLink = base + "/ig.html";
+    var fullLink = base + "/?utm_source=instagram&utm_medium=social&utm_campaign=artikel_guide&utm_content=bio_link";
+    document.getElementById("igShort").textContent = shortLink;
+    document.getElementById("igFull").textContent = fullLink;
+
+    var gaInput = document.getElementById("ga");
+    var gaId = (window.MNEMO_GA_ID || "").trim();
+    gaInput.value = gaId;
+    var status = document.getElementById("gaStatus");
+    if (!gaId || gaId === "G-XXXXXXXXXX") {
+      status.innerHTML = '<span class="warn">ID ещё не задан — аналитика пока не пишет данные.</span>';
+    } else {
+      status.innerHTML = '<span class="ok">ID задан: ' + gaId + "</span>";
+    }
+
+    document.getElementById("configPreview").textContent =
+      'window.MNEMO_GA_ID = "' + (gaId || "G-XXXXXXXXXX") + '";\n' +
+      'window.MNEMO_SITE_URL = "' + base + '";';
+
+    function copy(text) {
+      navigator.clipboard.writeText(text).then(function () {
+        alert("Скопировано");
+      });
+    }
+    document.getElementById("copyShort").onclick = function () { copy(shortLink); };
+    document.getElementById("copyFull").onclick = function () { copy(fullLink); };
+  </script>
+</body>
+</html>
