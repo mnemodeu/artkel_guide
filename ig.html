@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Instagram → гайд</title>
+  <script src="./analytics-config.js"></script>
+  <script>
+    (function () {
+      var base = (window.MNEMO_SITE_URL || "https://mnemodeu.github.io/artkel_guide").replace(/\/$/, "");
+      var params = new URLSearchParams({
+        utm_source: "instagram",
+        utm_medium: "social",
+        utm_campaign: "artikel_guide",
+        utm_content: "bio_link"
+      });
+      // allow override: /ig.html?content=story1
+      var q = new URLSearchParams(location.search);
+      if (q.get("content")) params.set("utm_content", q.get("content"));
+      location.replace(base + "/?" + params.toString());
+    })();
+  </script>
+</head>
+<body style="font-family:system-ui;padding:40px;background:#17304a;color:#fff">
+  Переход из Instagram…
+</body>
+</html>
