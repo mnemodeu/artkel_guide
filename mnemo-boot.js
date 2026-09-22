@@ -20,7 +20,6 @@
     wait_for_update: 500,
   });
 
-  // Optional region defaults (EEA / UK / CH often need stricter defaults)
   gtag("set", "url_passthrough", true);
   gtag("set", "ads_data_redaction", true);
 
@@ -45,6 +44,12 @@
     } catch (e) {}
   }
 
+  function clearConsent() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {}
+  }
+
   function applyConsent(granted) {
     var state = granted ? "granted" : "denied";
     gtag("consent", "update", {
@@ -60,7 +65,7 @@
 
   function loadGa() {
     if (!GA_ID || GA_ID === "G-XXXXXXXXXX") {
-      console.warn("[Mnemo Analytics] РЈРєР°Р¶Рё Measurement ID РІ analytics-config.js");
+      console.warn("[Mnemo] Укажи Measurement ID в mnemo-config.js");
       return;
     }
     if (document.getElementById("mnemo-gtag")) return;
@@ -125,21 +130,24 @@
     var css = document.createElement("style");
     css.id = "mnemo-consent-css";
     css.textContent =
-      "#mnemo-consent{position:fixed;z-index:99999;left:16px;right:16px;bottom:16px;max-width:720px;margin:0 auto;background:#17304a;color:#fff;border-radius:18px;box-shadow:0 18px 50px rgba(15,35,53,.35);padding:18px 18px 16px;font:15px/1.45 Manrope,system-ui,sans-serif}" +
-      "#mnemo-consent h2{margin:0 0 8px;font:700 1.05rem/1.25 Manrope,system-ui,sans-serif}" +
-      "#mnemo-consent p{margin:0 0 14px;color:#d5e0ea;font-size:.92rem}" +
+      "#mnemo-consent-bg{position:fixed;inset:0;z-index:2147483000;background:rgba(15,35,53,.55);backdrop-filter:blur(2px)}" +
+      "#mnemo-consent{position:fixed;z-index:2147483001;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,calc(100% - 28px));background:#17304a;color:#fff;border-radius:20px;box-shadow:0 24px 70px rgba(15,35,53,.45);padding:22px 22px 18px;font:15px/1.45 Manrope,system-ui,sans-serif}" +
+      "#mnemo-consent h2{margin:0 0 8px;font:700 1.15rem/1.25 Manrope,system-ui,sans-serif}" +
+      "#mnemo-consent p{margin:0 0 16px;color:#d5e0ea;font-size:.95rem}" +
       "#mnemo-consent a{color:#6fd3ce}" +
       "#mnemo-consent .actions{display:flex;gap:10px;flex-wrap:wrap}" +
-      "#mnemo-consent button{border:0;border-radius:999px;padding:11px 16px;font:800 .88rem Manrope,system-ui,sans-serif;cursor:pointer}" +
+      "#mnemo-consent button{border:0;border-radius:999px;padding:12px 18px;font:800 .9rem Manrope,system-ui,sans-serif;cursor:pointer}" +
       "#mnemo-consent .accept{background:#0aa7a5;color:#fff}" +
       "#mnemo-consent .reject{background:rgba(255,255,255,.12);color:#fff}" +
-      "#mnemo-consent-reopen{position:fixed;z-index:99998;left:14px;bottom:14px;border:0;border-radius:999px;background:rgba(23,48,74,.92);color:#fff;padding:9px 12px;font:700 .75rem Manrope,system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.25)}" +
-      "@media(max-width:560px){#mnemo-consent{left:10px;right:10px;bottom:10px;padding:16px}#mnemo-consent .actions{flex-direction:column}#mnemo-consent button{width:100%}}";
+      "#mnemo-consent-reopen{position:fixed;z-index:2147482999;left:14px;bottom:78px;border:0;border-radius:999px;background:rgba(23,48,74,.95);color:#fff;padding:10px 14px;font:700 .78rem Manrope,system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.28)}" +
+      "@media(max-width:560px){#mnemo-consent{padding:18px;top:auto;bottom:18px;transform:translate(-50%,0)}#mnemo-consent .actions{flex-direction:column}#mnemo-consent button{width:100%}#mnemo-consent-reopen{bottom:88px}}";
     document.head.appendChild(css);
   }
 
   function removeBanner() {
+    var bg = document.getElementById("mnemo-consent-bg");
     var el = document.getElementById("mnemo-consent");
+    if (bg) bg.remove();
     if (el) el.remove();
   }
 
@@ -159,6 +167,7 @@
   function onChoice(granted) {
     saveConsent(granted ? "granted" : "denied");
     applyConsent(granted);
+    if (granted) loadGa();
     removeBanner();
     showReopen();
     track("consent_update", { consent_state: granted ? "granted" : "denied" });
@@ -166,24 +175,36 @@
 
   function showBanner(force) {
     if (!force && readConsent()) return;
+    if (!document.body) {
+      document.addEventListener("DOMContentLoaded", function () {
+        showBanner(force);
+      });
+      return;
+    }
     removeBanner();
     injectStyles();
+
+    var bg = document.createElement("div");
+    bg.id = "mnemo-consent-bg";
+    bg.setAttribute("aria-hidden", "true");
 
     var box = document.createElement("div");
     box.id = "mnemo-consent";
     box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
     box.setAttribute("aria-live", "polite");
-    box.setAttribute("aria-label", "Р—Р°РїСЂРѕСЃ СЃРѕРіР»Р°СЃРёСЏ РЅР° РѕР±СЂР°Р±РѕС‚РєСѓ РґР°РЅРЅС‹С…");
+    box.setAttribute("aria-label", "Запрос согласия на обработку данных");
     box.innerHTML =
-      "<h2>РњС‹ РёСЃРїРѕР»СЊР·СѓРµРј cookies Рё Google Analytics</h2>" +
-      "<p>РќСѓР¶РЅРѕ РІР°С€Рµ СЃРѕРіР»Р°СЃРёРµ, С‡С‚РѕР±С‹ РїРµСЂРµРґР°РІР°С‚СЊ РґР°РЅРЅС‹Рµ РІ Google РґР»СЏ Р°РЅР°Р»РёС‚РёРєРё Рё (РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё) РїРµСЂСЃРѕРЅР°Р»РёР·Р°С†РёРё. " +
-      "Р’С‹ РјРѕР¶РµС‚Рµ РїСЂРёРЅСЏС‚СЊ РёР»Рё РѕС‚РєР»РѕРЅРёС‚СЊ. РџРѕРґСЂРѕР±РЅРµРµ вЂ” РІ " +
-      '<a href="https://policies.google.com/privacy" target="_blank" rel="noopener">РїРѕР»РёС‚РёРєРµ Google</a>.</p>' +
+      "<h2>Мы используем cookies и Google Analytics</h2>" +
+      "<p>Нужно ваше согласие, чтобы передавать данные в Google для аналитики. " +
+      "Вы можете принять или отклонить. Подробнее — в " +
+      '<a href="https://policies.google.com/privacy" target="_blank" rel="noopener">политике Google</a>.</p>' +
       '<div class="actions">' +
-      '<button type="button" class="accept" data-consent="yes">РџСЂРёРЅСЏС‚СЊ</button>' +
-      '<button type="button" class="reject" data-consent="no">РћС‚РєР»РѕРЅРёС‚СЊ</button>' +
+      '<button type="button" class="accept" data-consent="yes">Принять</button>' +
+      '<button type="button" class="reject" data-consent="no">Отклонить</button>' +
       "</div>";
 
+    document.body.appendChild(bg);
     document.body.appendChild(box);
     box.querySelector('[data-consent="yes"]').addEventListener("click", function () {
       onChoice(true);
@@ -203,19 +224,28 @@
     trackCampaign();
   }
 
-  // Boot
-  loadGa();
+  // ?consent=reset — показать баннер снова
+  try {
+    var q = new URLSearchParams(location.search);
+    if (q.get("consent") === "reset") {
+      clearConsent();
+      q.delete("consent");
+      var clean = location.pathname + (q.toString() ? "?" + q.toString() : "") + location.hash;
+      history.replaceState(null, "", clean);
+    }
+  } catch (e) {}
+
   initTrackingHelpers();
 
   var saved = readConsent();
   if (saved === "granted") {
     applyConsent(true);
+    loadGa();
     showReopen();
   } else if (saved === "denied") {
     applyConsent(false);
     showReopen();
   } else {
-    // No choice yet вЂ” keep denied defaults and ask
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", function () {
         showBanner(false);
