@@ -167,7 +167,6 @@
   function onChoice(granted) {
     saveConsent(granted ? "granted" : "denied");
     applyConsent(granted);
-    if (granted) loadGa();
     removeBanner();
     showReopen();
     track("consent_update", { consent_state: granted ? "granted" : "denied" });
@@ -237,10 +236,13 @@
 
   initTrackingHelpers();
 
+  // Always load gtag (Consent Mode): defaults stay denied until the user accepts.
+  // Otherwise Google's tag checker sees no tag and shows "data collection not working".
+  loadGa();
+
   var saved = readConsent();
   if (saved === "granted") {
     applyConsent(true);
-    loadGa();
     showReopen();
   } else if (saved === "denied") {
     applyConsent(false);
